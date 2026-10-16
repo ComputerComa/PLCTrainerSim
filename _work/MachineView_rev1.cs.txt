@@ -1,0 +1,553 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using UnityEngine;
+
+namespace CubeSorter
+{
+    /// <summary>
+    /// Builds the ball-sorter from Layout (procedural geometry, Blender frame mm -> Unity metres), runs the mock PLC + simulated machine,
+    /// animates parts and balls from sim state, and draws the visitor pendant, HMI banner, developer overlay and operator strip with IMGUI.
+    /// </summary>
+    public class MachineView : MonoBehaviour
+    {
+        // ---- configurable from the Inspector / dev overlay ----
+        public float ballDiameter = 20f;
+        public int inventoryPerColor = 50;
+        public bool presentation = false;
+        public float speed = 1f;
+
+        public Layout L; public MachineSim Sim; public MachineRunner R;
+        Transform root;
+        Material baseOpaque, baseClear;
+        readonly Dictionary<int, Material> matCache = new Dictionary<int, Material>();
+        Material[] ballMat = new Material[7];
+        readonly List<Transform> ballT = new List<Transform>();
+        static readonly Color[] BallCol = {
+            Color.gray, new Color(0.86f, 0.08f, 0.08f), new Color(0.05f, 0.62f, 0.2f), new Color(0.08f, 0.25f, 0.95f),
+            new Color(0.98f, 0.82f, 0.05f), new Color(0.96f, 0.96f, 0.94f), new Color(0.04f, 0.04f, 0.05f) };
+
+        // animated parts
+        Transform[] pistonRod = new Transform[6], pistonHead = new Transform[6], pawlA = new Transform[6], pawlB = new Transform[6], gate = new Transform[6];
+        Transform esc, gantryCarriage, gantryRod, gantryBody; Transform[] jawA = new Transform[5], jawB = new Transform[5]; Transform sensorLens;
+        Vector3[] gateBase = new Vector3[6]; Vector3 escBase;
+        Material lensMat;
+        bool estop;
+        
+
+        // HMI state
+        int hmiSeen; readonly Queue<HmiMsg> hmiQ = new Queue<HmiMsg>(); HmiMsg hmiCur; float hmiSince; string demoLine = "";
+        GUIStyle sLabel, sBig, sSmall, sBtn, sBox; readonly Texture2D[] swatch = new Texture2D[7]; Texture2D darkTex;
+        Vector2 mouseDownPos; Camera cam; OrbitCamera orbit;
+        Vector2 devScroll;
+
+        // ================= setup =================
+        void Awake()
+        {
+            baseOpaque = Resources.Load<Material>("BS_Opaque"); baseClear = Resources.Load<Material>("BS_Clear");
+            for (int c = 1; c <= 6; c++) { ballMat[c] = new Material(baseOpaque); ballMat[c].SetColor("_BaseColor", BallCol[c]); ballMat[c].SetFloat("_Smoothness", c == 6 ? 0.8f : 0.6f); swatch[c] = Tex(BallCol[c]); }
+            darkTex = Tex(new Color(0.08f, 0.1f, 0.14f, 0.82f));
+            cam = Camera.main; if (cam) orbit = cam.GetComponent<OrbitCamera>();
+            Rebuild(true);
+        }
+
+        static Texture2D Tex(Color c) { var t = new Texture2D(2, 2); var px = new Color[4]; for (int i = 0; i < 4; i++) px[i] = c; t.SetPixels(px); t.Apply(); return t; }
+
+        public void Rebuild(bool start)
+        {
+            if (root) Destroy(root.gameObject);
+            matCache.Clear(); ballT.Clear();
+            var root0 = new GameObject("Machine"); root0.transform.SetParent(transform, false); root = root0.transform;
+            L = new Layout { BallD = ballDiameter, InventoryPerColor = inventoryPerColor }; L.Build();
+            Sim = new MachineSim(L, 1); R = new MachineRunner(Sim, 1);
+            estop = false; hmiSeen = 0; hmiQ.Clear(); hmiCur = null; demoLine = "";
+            Build();
+            if (start) Press("X_Start_PB");
+            SetPresets();
+        }
+
+        public void Restart() { Rebuild(true); }
+
+        void Press(string tag) { R.Tags.SetBool(tag, true); R.Advance(R.ScanTime); R.Tags.SetBool(tag, false); R.Advance(R.ScanTime); }
+
+        // ================= geometry helpers =================
+        static Vector3 U(double x, double y, double z) { return new Vector3(-(float)x, (float)z, -(float)y) * 0.001f; }
+        static Vector3 U(V3 p) { return U(p.X, p.Y, p.Z); }
+
+        Material Mat(Color c, float smooth = 0.35f)
+        {
+            int key = ((int)(c.r * 255) << 16) | ((int)(c.g * 255) << 8) | (int)(c.b * 255);
+            Material m;
+            if (!matCache.TryGetValue(key, out m)) { m = new Material(baseOpaque); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); matCache[key] = m; }
+            return m;
+        }
+        static readonly Color Steel = new Color(0.62f, 0.65f, 0.7f), Dark = new Color(0.16f, 0.17f, 0.2f), Deck = new Color(0.82f, 0.84f, 0.88f), Accent = new Color(0.1f, 0.4f, 0.75f);
+
+        Transform Prim(PrimitiveType t, string name, Transform parent, Material m, bool collider = false)
+        {
+            var g = GameObject.CreatePrimitive(t); g.name = name; g.transform.SetParent(parent ? parent : root, false);
+            if (!collider) { var c = g.GetComponent<Collider>(); if (c) Destroy(c); }
+            g.GetComponent<Renderer>().sharedMaterial = m; return g.transform;
+        }
+        // box centred at Blender-mm point, sizes in Blender axes (x,y,z)
+        Transform Box(string n, double cx, double cy, double cz, double sx, double sy, double sz, Material m, Transform parent = null)
+        {
+            var t = Prim(PrimitiveType.Cube, n, parent, m); t.localPosition = U(cx, cy, cz); t.localScale = new Vector3((float)sx, (float)sz, (float)sy) * 0.001f; return t;
+        }
+        Transform BoxBox(string n, double x0, double x1, double y0, double y1, double z0, double z1, Material m, Transform parent = null)
+        {
+            return Box(n, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, Math.Abs(x1 - x0), Math.Abs(y1 - y0), Math.Abs(z1 - z0), m, parent);
+        }
+        Transform Cyl(string n, double cx, double cy, double z0, double z1, double r, Material m, Transform parent = null)
+        {
+            var t = Prim(PrimitiveType.Cylinder, n, parent, m); t.localPosition = U(cx, cy, (z0 + z1) / 2);
+            t.localScale = new Vector3((float)(2 * r), (float)(Math.Abs(z1 - z0) / 2), (float)(2 * r)) * 0.001f; return t;
+        }
+        // plate along a segment: width w (across), thickness h (local up), centre offset 'down' mm below the segment line
+        Transform Seg(string n, V3 a, V3 b, double w, double h, double down, Material m, double side = 0, Transform parent = null)
+        {
+            var t = Prim(PrimitiveType.Cube, n, parent, m);
+            Vector3 ua = U(a), ub = U(b), d = ub - ua; if (d.sqrMagnitude < 1e-12f) d = Vector3.forward;
+            var rot = Quaternion.LookRotation(d.normalized, Vector3.up);
+            t.localRotation = rot; t.localPosition = (ua + ub) * 0.5f + rot * new Vector3((float)side, (float)-down, 0) * 0.001f;
+            t.localScale = new Vector3((float)w, (float)h, d.magnitude * 1000f) * 0.001f; return t;
+        }
+        void Trough(string n, Path p, int from, int to, Material floor, Material rail)
+        {
+            double w = L.BallD * 0.96;
+            for (int i = from; i < to; i++)
+            {
+                V3 a = p.P[i], b = p.P[i + 1];
+                Seg(n + "_floor", a, b, w + 6, 3, L.Rb + 1.5, floor);
+                Seg(n + "_railL", a, b, 2.5, L.Rb * 0.9, 0, rail, w / 2 + 1.2);
+                Seg(n + "_railR", a, b, 2.5, L.Rb * 0.9, 0, rail, -(w / 2 + 1.2));
+            }
+        }
+        void Post(string n, double x, double y, double ztop, double r, Material m) { Cyl(n, x, y, 0, ztop, r, m); }
+
+        // ================= build the machine =================
+        void Build()
+        {
+            var steel = Mat(Steel, 0.6f); var dark = Mat(Dark, 0.4f); var deck = Mat(Deck, 0.25f); var acc = Mat(Accent, 0.4f); var clear = baseClear;
+            double Rb = L.Rb;
+            // base plate (also carries the pendant)
+            BoxBox("Base", L.MinX, L.MaxX, L.MinY - 150, L.MaxY, -16, 0, deck);
+            BoxBox("BaseEdge", L.MinX, L.MaxX, L.MinY - 150, L.MinY - 146, -16, 6, acc);
+
+            for (int k = 0; k < 6; k++)
+            {
+                double x = L.HopperX[k], hw = L.HopperW; Color hc = BallCol[k + 1];
+                var hm = Mat(Color.Lerp(hc, Color.white, 0.25f), 0.3f);
+                double yTop = L.YRear + L.Cell / 2 + 3, yBot = L.YFront - L.Cell / 2 - 3;
+                double zR = L.ZfRear - Rb, zF = L.ZfRear + (L.YRear - L.YFront + L.Cell + 6) * L.Tilt - Rb;
+                // tilted floor (rolls toward the exit port at the rear)
+                Seg("HopperFloor" + k, new V3(x, yBot, L.ZfRear + (L.YRear - yBot) * L.Tilt), new V3(x, yTop, L.ZfRear + (L.YRear - yTop) * L.Tilt), hw, 4, Rb + 2, steel);
+                // low colored lip at the front, clear side walls, rear wall with exit port
+                double zfFront = L.ZfRear + (L.YRear - yBot) * L.Tilt;
+                BoxBox("HopperLip" + k, x - hw / 2, x + hw / 2, yBot - 3, yBot, 0, zfFront + L.Cell * 0.7, hm);
+                BoxBox("HopperSideL" + k, x - hw / 2 - 2, x - hw / 2, yBot, yTop, 0, L.HopperRimZ + 6, clear);
+                BoxBox("HopperSideR" + k, x + hw / 2, x + hw / 2 + 2, yBot, yTop, 0, L.HopperRimZ + 6, clear);
+                double port = L.Cell * 0.6;
+                BoxBox("HopperBackL" + k, x - hw / 2, x - port, yTop, yTop + 3, 0, L.HopperRimZ + 6, steel);
+                BoxBox("HopperBackR" + k, x + port, x + hw / 2, yTop, yTop + 3, 0, L.HopperRimZ + 6, steel);
+                BoxBox("HopperBackTop" + k, x - port, x + port, yTop, yTop + 3, L.ZfRear + L.Cell * 0.9, L.HopperRimZ + 6, steel);
+                BoxBox("HopperBackLow" + k, x - port, x + port, yTop, yTop + 3, 0, L.ZfRear - Rb - 2, steel);
+                // ramp from hopper port to the pump inlet
+                Trough("Ramp" + k, L.Ramp[k], 1, 2, steel, steel);
+                // ---- pump ----
+                double py = L.PumpY;
+                BoxBox("PumpHousing" + k, x - 24, x + 24, py - 24, py + 24, 0, L.ZCup - Rb - 30, dark);
+                pistonRod[k] = Cyl("PistonRod" + k, x, py, 0, 1, 4.5, steel);
+                pistonHead[k] = Cyl("PistonHead" + k, x, py, 0, 1, L.TubeInnerR - 0.6, acc);
+                // inlet block: open toward the hopper, retaining pawls
+                double zi0 = L.ZCup - Rb - 4, zi1 = L.ZCup + Rb + 1;
+                BoxBox("InletBack" + k, x - Rb - 5, x + Rb + 5, py + Rb + 1, py + Rb + 5, zi0, zi1, dark);
+                BoxBox("InletL" + k, x + Rb + 1, x + Rb + 5, py - Rb - 1, py + Rb + 5, zi0, zi1, dark);
+                BoxBox("InletR" + k, x - Rb - 5, x - Rb - 1, py - Rb - 1, py + Rb + 5, zi0, zi1, dark);
+                pawlA[k] = Box("PawlA" + k, 0, 0, 0, 10, 8, 4, Mat(new Color(0.95f, 0.5f, 0.1f)));
+                pawlB[k] = Box("PawlB" + k, 0, 0, 0, 10, 8, 4, Mat(new Color(0.95f, 0.5f, 0.1f)));
+                // clear column
+                Cyl("PumpTube" + k, x, py, zi1, L.OutletZ - Rb - 1, L.TubeOuterR, clear);
+                // outlet fitting (open toward +y) and cap
+                double zo0 = L.OutletZ - Rb - 1, zo1 = L.OutletZ + Rb + 4;
+                BoxBox("OutBack" + k, x - Rb - 5, x + Rb + 5, py - Rb - 5, py - Rb - 1, zo0, zo1, dark);
+                BoxBox("OutL" + k, x + Rb + 1, x + Rb + 5, py - Rb - 1, py + Rb + 14, zo0, zo1, dark);
+                BoxBox("OutR" + k, x - Rb - 5, x - Rb - 1, py - Rb - 1, py + Rb + 14, zo0, zo1, dark);
+                BoxBox("OutCap" + k, x - Rb - 5, x + Rb + 5, py - Rb - 5, py + Rb + 14, zo1, zo1 + 4, dark);
+                Post("PumpPost" + k, x, py + Rb + 22, L.OutletZ - Rb - 2, 4, steel);
+                // ---- track ----
+                Trough("Track" + k, L.Track[k], 0, 2, clear, steel);
+                Post("TrackPostA" + k, x, L.PumpY + 120, L.Track[k].At(120 + Rb + 12).Z - Rb - 4, 3.5, steel);
+                Post("TrackPostB" + k, x, L.TrackEndY - 8, L.GateZ[k] - Rb - 3, 3.5, steel);
+                // gate (drops away when open)
+                V3 te = L.Track[k].P[2]; V3 dir = L.Track[k].DirAt(L.Track[k].Length - 1);
+                gateBase[k] = U(te.X, te.Y + Rb + 3, te.Z + Rb * 0.2);
+                gate[k] = Box("Gate" + k, 0, 0, 0, 2 * Rb + 4, 4, 2 * Rb + 8, Mat(new Color(0.9f, 0.2f, 0.1f)));
+                gate[k].localPosition = gateBase[k];
+                // funnel (sloped troughs toward the single throat)
+                Trough("Funnel" + k, L.Funnel[k], 0, 1, clear, steel);
+                Post("FunnelPost" + k, (L.Funnel[k].P[0].X + L.Funnel[k].P[1].X) / 2, (L.Funnel[k].P[0].Y + L.Funnel[k].P[1].Y) / 2, (L.Funnel[k].P[0].Z + L.Funnel[k].P[1].Z) / 2 - Rb - 3, 3, steel);
+            }
+            // merge throat, chute, escapement, nest
+            Trough("Chute", L.Chute, 0, 3, clear, steel);
+            Post("ThroatPost", 0, L.FunnelTY + 18, L.ThroatZ - Rb - 3, 4, steel);
+            Post("ChutePost1", 0, L.FunnelTY - 30, L.ChuteStartZ - Rb - 4, 4, steel);
+            Post("ChutePost2", 0, L.EscY + 90, L.Chute.At(L.Chute.Length - 90).Z - Rb - 4, 4, steel);
+            Post("ChutePost3", 0, L.EscY + 6, L.EscZ - Rb - 3, 4, steel);
+            // vertical chute drop between funnel throat and chute start is a short clear tube
+            Cyl("ThroatDrop", 0, L.FunnelTY, L.ChuteStartZ - 2, L.ThroatZ + Rb, L.TubeOuterR, clear);
+            escBase = U(0, L.EscY - Rb - 3, L.EscZ + Rb * 0.2);
+            esc = Box("Escapement", 0, 0, 0, 2 * Rb + 4, 4, 2 * Rb + 8, Mat(new Color(0.9f, 0.2f, 0.1f))); esc.localPosition = escBase;
+            Trough("EscToNest", L.EscToNest, 0, 1, clear, steel);
+            // nest (inspection station)
+            Cyl("NestDish", 0, 0, L.NestZ - Rb - 4, L.NestZ - Rb, Rb + 7, dark);
+            for (int i = 0; i < 4; i++) { double a = Math.PI / 4 + i * Math.PI / 2; Cyl("NestPeg" + i, (Rb + 3) * Math.Cos(a), (Rb + 3) * Math.Sin(a), L.NestZ - Rb, L.NestZ - Rb * 0.2, 2.2, steel); }
+            Post("NestPost", 0, 0, L.NestZ - Rb - 4, 6, steel);
+            BoxBox("SensorMount", -12, 12, -Rb - 36, -Rb - 20, 0, L.NestZ + 8, dark);
+            BoxBox("SensorHead", -14, 14, -Rb - 24, -Rb - 8, L.NestZ - 12, L.NestZ + 12, Mat(new Color(0.08f, 0.1f, 0.12f)));
+            lensMat = new Material(baseOpaque); lensMat.SetColor("_BaseColor", Color.gray);
+            sensorLens = Prim(PrimitiveType.Sphere, "SensorLens", null, lensMat); sensorLens.localPosition = U(0, -Rb - 7, L.NestZ); sensorLens.localScale = Vector3.one * 0.014f;
+            // reject pocket
+            double rx = L.RejectX, rw = 3 * L.Cell + 8, rd = Math.Max(1, L.RejectCap / 3) * L.Cell + 8;
+            BoxBox("RejectFloor", rx - rw / 2, rx + rw / 2, -rd / 2, rd / 2, 0, L.ZfRear - Rb - 0.5, Mat(new Color(0.55f, 0.1f, 0.1f)));
+            BoxBox("RejectW1", rx - rw / 2 - 2, rx - rw / 2, -rd / 2, rd / 2, 0, L.HopperRimZ, clear);
+            BoxBox("RejectW2", rx + rw / 2, rx + rw / 2 + 2, -rd / 2, rd / 2, 0, L.HopperRimZ, clear);
+            BoxBox("RejectW3", rx - rw / 2, rx + rw / 2, rd / 2, rd / 2 + 2, 0, L.HopperRimZ, clear);
+            BoxBox("RejectW4", rx - rw / 2, rx + rw / 2, -rd / 2 - 3, -rd / 2, 0, L.ZfRear + L.Cell * 0.7, Mat(new Color(0.8f, 0.15f, 0.15f)));
+            // gantry frame
+            double bz = L.BeamZ;
+            BoxBox("GantryPostL", L.PostXMin - 7, L.PostXMin + 7, -7, 7, 0, bz + 14, steel);
+            BoxBox("GantryPostR", L.PostXMax - 7, L.PostXMax + 7, -7, 7, 0, bz + 14, steel);
+            BoxBox("GantryBeam", L.PostXMin - 7, L.PostXMax + 7, -9, 9, bz - 6, bz + 14, acc);
+            BoxBox("GantryRail", L.PostXMin, L.PostXMax, -11, -9, bz - 3, bz + 3, steel);
+            gantryCarriage = Box("Carriage", 0, 0, 0, 44, 30, 26, dark);
+            gantryRod = Cyl("GantryZRod", 0, 0, 0, 1, 5, steel);
+            gantryBody = Box("GripperBody", 0, 0, 0, 2 * Rb + 24, 22, 8, dark);
+            var jawM = Mat(new Color(0.95f, 0.75f, 0.1f), 0.5f);
+            for (int i = 0; i < 5; i++)
+            {
+                jawA[i] = Box("JawA" + i, 0, 0, 0, 3.5, 12, 10, jawM); jawB[i] = Box("JawB" + i, 0, 0, 0, 3.5, 12, 10, jawM);
+            }
+            // visitor pendant (3D, clickable) at the front of the base
+            double py0 = L.MinY - 80;
+            BoxBox("PendantBody", -190, 190, py0 - 40, py0 + 40, 0, 26, dark);
+            for (int k = 0; k < 6; k++)
+            {
+                double bx = (k - 2.5) * 56;
+                var b = Cyl("PendantButton" + k, bx, py0, 26, 38, 20, Mat(BallCol[k + 1], 0.5f));
+                var col = b.gameObject.AddComponent<CapsuleCollider>(); col.height = 2; col.radius = 0.5f; col.direction = 1;
+                var rr = Prim(PrimitiveType.Cylinder, "PendantRing" + k, null, steel); rr.localPosition = U(bx, py0, 25); rr.localScale = new Vector3(0.05f, 0.0012f, 0.05f);
+                b.gameObject.name = "PendantButton" + k;
+            }
+            // balls
+            var sphereMesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+            for (int i = 0; i < Sim.Balls.Count; i++)
+            {
+                var g = new GameObject("Ball" + i); g.transform.SetParent(root, false);
+                g.AddComponent<MeshFilter>().sharedMesh = sphereMesh; g.AddComponent<MeshRenderer>().sharedMaterial = ballMat[Sim.Balls[i].TrueColor];
+                g.transform.localScale = Vector3.one * (float)L.BallD * 0.001f; g.transform.localPosition = U(Sim.Balls[i].Pos);
+                ballT.Add(g.transform);
+            }
+        }
+
+        // ================= camera presets =================
+        Vector3[] pf = new Vector3[5]; float[] pd = new float[5], py_ = new float[5], pp = new float[5];
+        void SetPreset(int i, double bx, double by, double bz, float d, float yaw, float pitch) { pf[i] = U(bx, by, bz); pd[i] = d; py_[i] = yaw; pp[i] = pitch; }
+        void SetPresets()
+        {
+            double xc = (L.MinX + L.MaxX) / 2;
+            SetPreset(0, xc, 200, 170, 1.15f, 0, 26);                  // overview
+            SetPreset(1, 0, 90, 200, 0.8f, 0, 20);                    // pumps / hoppers
+            SetPreset(2, 0, 260, 230, 0.8f, 32, 30);                  // merge / inspection
+            SetPreset(3, 0, 0, 200, 0.6f, 0, 12);                      // gantry
+            SetPreset(4, xc, 230, 100, 1.2f, 0, 86);                   // top
+            if (orbit) Go(0);
+        }
+        void Go(int i) { if (orbit) { orbit.GoTo(pf[i], pd[i], py_[i], pp[i]); } }
+
+        // ================= per-frame =================
+        void Update()
+        {
+            if (Input_P()) presentation = !presentation;
+            float dt = Mathf.Min(Time.deltaTime, 0.1f) * speed;
+            R.Advance(dt);
+        }
+        static bool Input_P() { return false; }
+
+        void LateUpdate()
+        {
+            if (Sim == null) return;
+            double Rb = L.Rb;
+            // balls
+            for (int i = 0; i < Sim.Balls.Count && i < ballT.Count; i++) { ballT[i].localPosition = U(Sim.Balls[i].Pos); Sim.Balls[i].Teleport = false; }
+            // pumps
+            for (int k = 0; k < 6; k++)
+            {
+                var p = Sim.Pumps[k]; double x = L.HopperX[k], py = L.PumpY;
+                double headTop = L.ZCup - Rb + p.Piston * L.BallD, headC = headTop - 2;
+                double rodTop = headC - 2, rodBot = L.ZCup - Rb - 30;
+                SetCyl(pistonHead[k], x, py, headC - 2, headC + 2, L.TubeInnerR - 0.6);
+                SetCyl(pistonRod[k], x, py, rodBot, rodTop, 4.5);
+                double pawlX = Lerp(Rb + 12, Rb * 0.5 + 2, p.Pawl);
+                double pz = L.ZCup + Rb + 3 - 1;
+                pawlA[k].localPosition = U(x + pawlX, py, pz); pawlB[k].localPosition = U(x - pawlX, py, pz);
+                gate[k].localPosition = gateBase[k] + Vector3.down * (float)(Sim.GateAngle[k] * (L.BallD + 8) * 0.001);
+            }
+            esc.localPosition = escBase + Vector3.down * (float)(Sim.EscAngle * (L.BallD + 8) * 0.001);
+            // gantry
+            double gz = L.NestZ + L.GantryStroke - Sim.GZ;     // gripper (ball centre) height
+            gantryCarriage.localPosition = U(Sim.GX, 0, L.BeamZ - 4);
+            SetCyl(gantryRod, Sim.GX, 0, gz + Rb + 8, L.BeamZ - 12, 5);
+            gantryBody.localPosition = U(Sim.GX, 0, gz + Rb + 11);
+            double open = (1 - Sim.Grip) * 8;
+            for (int i = 0; i < 5; i++)
+            {
+                double ang = (-48 + i * 24) * Math.PI / 180; double R0 = Rb + 2.5;
+                double jx = (R0 + open) * Math.Cos(ang) - (open) * 0 ; // right jaw
+                double z = gz + R0 * Math.Sin(ang);
+                jawA[i].localPosition = U(Sim.GX + (R0 * Math.Cos(ang) + open), 0, z); jawA[i].localRotation = Quaternion.Euler(0, 0, (float)(-(ang * 180 / Math.PI)) * 0 + (float)(ang * 180 / Math.PI));
+                jawB[i].localPosition = U(Sim.GX - (R0 * Math.Cos(ang) + open), 0, z); jawB[i].localRotation = Quaternion.Euler(0, 0, -(float)(ang * 180 / Math.PI));
+            }
+            // colour sensor lens: amber while lit, ball colour once read
+            Color lc = new Color(0.25f, 0.25f, 0.28f);
+            if (Sim.ColorLightOn) lc = new Color(1f, 0.85f, 0.3f);
+            if (Sim.NestValid && Sim.NestColor >= 1 && Sim.NestColor <= 6) lc = BallCol[Sim.NestColor];
+            lensMat.SetColor("_BaseColor", lc);
+        }
+        static double Lerp(double a, double b, double t) { return a + (b - a) * t; }
+        void SetCyl(Transform t, double x, double y, double z0, double z1, double r)
+        {
+            t.localPosition = U(x, y, (z0 + z1) / 2); t.localScale = new Vector3((float)(2 * r), (float)(Math.Abs(z1 - z0) / 2), (float)(2 * r)) * 0.001f;
+        }
+
+        // ================= GUI =================
+        void InitStyles()
+        {
+            if (sLabel != null) return;
+            sLabel = new GUIStyle(GUI.skin.label) { fontSize = 13, wordWrap = false, richText = true }; sLabel.normal.textColor = Color.white;
+            sBig = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true }; sBig.normal.textColor = Color.white;
+            sSmall = new GUIStyle(GUI.skin.label) { fontSize = 12 }; sSmall.normal.textColor = new Color(0.85f, 0.9f, 1f);
+            sBtn = new GUIStyle(GUI.skin.button) { fontSize = 14, fontStyle = FontStyle.Bold };
+            sBox = new GUIStyle(GUI.skin.box); sBox.normal.background = darkTex;
+        }
+
+        float gs;      // GUI scale
+        float VW { get { return Screen.width / gs; } }
+        float VH { get { return Screen.height / gs; } }
+
+        void OnGUI()
+        {
+            if (Sim == null) return;
+            InitStyles();
+            var e = Event.current;
+            if (e.type == EventType.KeyDown && e.keyCode == KeyCode.P) { presentation = !presentation; e.Use(); }
+            gs = Mathf.Clamp(Screen.height / 760f, 0.85f, 1.8f);
+            OrbitCamera.Blockers.Clear();
+            var prev = GUI.matrix; GUI.matrix = Matrix4x4.Scale(new Vector3(gs, gs, 1));
+            DrawLabels();
+            DrawHmi();
+            DrawPendant();
+            if (presentation) DrawOperatorStrip(); else { DrawDev(); DrawCameraButtons(); }
+            GUI.matrix = prev;
+            HandleWorldClick(e);
+        }
+
+        void Block(Rect r) { OrbitCamera.Blockers.Add(new Rect(r.x * gs, r.y * gs, r.width * gs, r.height * gs)); }
+
+        void HandleWorldClick(Event e)
+        {
+            if (!cam) return;
+            if (e.type == EventType.MouseDown && e.button == 0) mouseDownPos = e.mousePosition;
+            if (e.type == EventType.MouseUp && e.button == 0 && (e.mousePosition - mouseDownPos).magnitude < 6f)
+            {
+                for (int i = 0; i < OrbitCamera.Blockers.Count; i++) if (OrbitCamera.Blockers[i].Contains(e.mousePosition)) return;
+                var ray = cam.ScreenPointToRay(new Vector3(e.mousePosition.x, Screen.height - e.mousePosition.y, 0));
+                RaycastHit hit;
+                if (Physics.Raycast(ray, out hit, 20f) && hit.collider.name.StartsWith("PendantButton"))
+                { int k; if (int.TryParse(hit.collider.name.Substring(13), out k)) Press(Tg.Pend[k]); }
+            }
+        }
+
+        void Label3D(V3 p, string text, Color c, int size = 13, bool shadowless = false)
+        {
+            if (!cam) return;
+            var sp = cam.WorldToScreenPoint(U(p)); if (sp.z < 0) return;
+            float x = sp.x / gs, y = (Screen.height - sp.y) / gs;
+            var st = new GUIStyle(sLabel) { fontSize = size, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            var r = new Rect(x - 70, y - 11, 140, 22);
+            if (!shadowless) { st.normal.textColor = Color.black; GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), text, st); }
+            st.normal.textColor = c; GUI.Label(r, text, st);
+        }
+
+        void DrawLabels()
+        {
+            var st = Sim.Stats();
+            for (int k = 0; k < 6; k++)
+            {
+                Label3D(new V3(L.HopperX[k], L.YFront - L.Cell, 18), Colors.Names[k + 1].ToUpperInvariant() + " " + Sim.Hopper[k].Count, (k == 3 || k == 4) ? Color.black : Color.white, 12, true);
+            }
+            Label3D(new V3(0, -Rb(), L.NestZ - 36), "INSPECT", new Color(1f, 0.95f, 0.5f), 13);
+            Label3D(new V3(L.RejectX, L.YFront - L.Cell, 18), "REJECT " + Sim.RejectBin.Count, new Color(1f, 0.55f, 0.5f), 12);
+            Label3D(new V3(0, 0, L.BeamZ + 30), "SORTING GANTRY", new Color(0.7f, 0.85f, 1f), 12);
+        }
+        double Rb() { return L.Rb + 12; }
+
+        // ---- HMI banner (visitor facing) ----
+        void DrawHmi()
+        {
+            var plc = R.Plc;
+            if (plc.Hmi.Count < hmiSeen) hmiSeen = Math.Max(0, hmiSeen - 100);
+            for (; hmiSeen < plc.Hmi.Count; hmiSeen++)
+            {
+                var m = plc.Hmi[hmiSeen];
+                if (m.Src == ReqSrc.Visitor || m.ReqId == 0) hmiQ.Enqueue(m);
+                else demoLine = "Demo ball #" + m.ReqId + " (" + Colors.Names[m.Color] + "): " + m.Text;
+            }
+            float minShow = hmiQ.Count > 3 ? 0.5f : 1.3f;
+            if (Event.current.type == EventType.Repaint)
+            {
+                if (hmiQ.Count > 0 && (hmiCur == null || Time.unscaledTime - hmiSince >= minShow)) { hmiCur = hmiQ.Dequeue(); hmiSince = Time.unscaledTime; }
+                else if (hmiQ.Count == 0 && hmiCur != null && Time.unscaledTime - hmiSince > 6f) hmiCur = null;
+            }
+            string text; Color chip = Color.clear;
+            if (hmiCur != null) { text = hmiCur.Text; if (hmiCur.Color >= 1) chip = BallCol[hmiCur.Color]; }
+            else if (!plc.Running) text = R.Tags.GetBool("X_EStop_NC") ? "Machine stopped" : "Emergency stop (simulated)";
+            else if (plc.AutoActive) text = "Demo running - press any color to join in!";
+            else text = "Choose a color - send a ball around the machine!";
+            float w = Mathf.Min(760, VW - 40), x = (VW - w) / 2;
+            float top = presentation ? 52f : 10f; var box = new Rect(x, top, w, 74); GUI.Box(box, GUIContent.none, sBox); Block(box);
+            if (chip.a > 0) { var o = GUI.color; GUI.color = chip; GUI.DrawTexture(new Rect(x + 12, top + 17, 40, 40), swatch[hmiCur.Color]); GUI.color = o; }
+            GUI.Label(new Rect(x + 60, top + 2, w - 120, 70), text, sBig);
+            // active visitor entries
+            var lines = new List<string>(); var cols = new List<int>();
+            foreach (var r in plc.VisitorQ) { lines.Add("Entry #" + r.Id + "  " + Colors.Names[r.Color] + " - queued"); cols.Add(r.Color); }
+            foreach (var r in plc.Live) if (r.Src == ReqSrc.Visitor) { lines.Add("Entry #" + r.Id + "  " + Colors.Names[r.Color] + " - " + StageText(r)); cols.Add(r.Color); }
+            float yy = top + 80;
+            if (lines.Count > 0)
+            {
+                var panel = new Rect(x, yy, w, 6 + lines.Count * 20); GUI.Box(panel, GUIContent.none, sBox); Block(panel);
+                for (int i = 0; i < lines.Count; i++) { GUI.DrawTexture(new Rect(x + 10, yy + 7 + i * 20, 14, 14), swatch[cols[i]]); GUI.Label(new Rect(x + 30, yy + 3 + i * 20, w - 40, 20), lines[i], sLabel); }
+                yy += panel.height + 4;
+            }
+            if (plc.AutoActive && demoLine.Length > 0) { var o = GUI.color; GUI.color = new Color(1, 1, 1, 0.8f); GUI.Label(new Rect(x, yy, w, 20), demoLine, sSmall); GUI.color = o; }
+        }
+
+        static string StageText(Req r)
+        {
+            switch (r.Stage)
+            {
+                case RS.Dispensing: return "releasing your ball...";
+                case RS.OnTrack: case RS.Merging: return "rolling down the track";
+                case RS.InNest: case RS.Inspecting: return "checking its color...";
+                case RS.Detected: return r.Detected > 0 ? "it's " + Colors.Names[r.Detected].ToLowerInvariant() + "!" : "unknown color";
+                case RS.Carrying: case RS.Placing: return r.Detected > 0 ? "returning to the " + Colors.Names[r.Detected].ToLowerInvariant() + " hopper" : "to the check pocket";
+                default: return r.Stage.ToString();
+            }
+        }
+
+        // ---- pendant (on screen) ----
+        void DrawPendant()
+        {
+            float bw = Mathf.Min(120, (VW - 60) / 6f), bh = 62, total = 6 * (bw + 6), x0 = (VW - total) / 2, y0 = VH - bh - 40;
+            var panel = new Rect(x0 - 8, y0 - 26, total + 10, bh + 66); GUI.Box(panel, GUIContent.none, sBox); Block(panel);
+            GUI.Label(new Rect(x0, y0 - 22, total, 20), "VISITOR PENDANT - press a color    (queue " + R.Plc.VisitorQ.Count + "/" + R.Plc.VisitorQueueMax + ")", sSmall);
+            for (int k = 0; k < 6; k++)
+            {
+                var r = new Rect(x0 + k * (bw + 6), y0, bw, bh);
+                var s = new GUIStyle(sBtn) { fontSize = 16 };
+                s.normal.background = swatch[k + 1]; s.hover.background = swatch[k + 1]; s.active.background = swatch[k + 1]; s.focused.background = swatch[k + 1];
+                Color tc = (k == 3 || k == 4) ? Color.black : Color.white;
+                s.normal.textColor = tc; s.hover.textColor = tc; s.active.textColor = tc; s.focused.textColor = tc;
+                if (GUI.Button(r, Colors.Names[k + 1].ToUpperInvariant(), s)) Press(Tg.Pend[k]);
+            }
+        }
+
+        // ---- operator strip (always available, incl. presentation) ----
+        void DrawOperatorStrip()
+        {
+            var r = new Rect(VW - 372, 10, 362, 36); GUI.Box(r, GUIContent.none, sBox); Block(r);
+            OperatorButtons(r.x + 4, r.y + 4, 66, 28);
+            if (GUI.Button(new Rect(r.x + 4 + 4 * 70, r.y + 4, 74, 28), "Dev (P)", sBtn)) presentation = false;
+        }
+
+        void OperatorButtons(float x, float y, float w, float h)
+        {
+            if (GUI.Button(new Rect(x, y, w, h), "Start", sBtn)) Press("X_Start_PB");
+            if (GUI.Button(new Rect(x + (w + 4), y, w, h), "Stop", sBtn)) Press("X_Stop_PB");
+            var o = GUI.backgroundColor; GUI.backgroundColor = estop ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.25f, 0.2f);
+            if (GUI.Button(new Rect(x + 2 * (w + 4), y, w, h), estop ? "RELEASE" : "E-STOP*", sBtn)) { estop = !estop; R.Tags.SetBool("X_EStop_NC", !estop); }
+            GUI.backgroundColor = o;
+            if (GUI.Button(new Rect(x + 3 * (w + 4), y, w, h), "Restart", sBtn)) Restart();
+        }
+
+        // ---- camera buttons ----
+        void DrawCameraButtons()
+        {
+            string[] n = { "Overview", "Pumps/Hoppers", "Merge/Inspect", "Gantry", "Top" };
+            var r = new Rect(10, VH - 40, 5 * 112 + 8, 34); GUI.Box(r, GUIContent.none, sBox); Block(r);
+            for (int i = 0; i < 5; i++) if (GUI.Button(new Rect(r.x + 4 + i * 112, r.y + 3, 108, 28), n[i], sBtn)) Go(i);
+        }
+
+        // ---- developer overlay ----
+        void DrawDev()
+        {
+            var plc = R.Plc; var st = Sim.Stats();
+            var r = new Rect(10, 10, 360, VH - 62); GUI.Box(r, GUIContent.none, sBox); Block(r);
+            GUILayout.BeginArea(new Rect(r.x + 8, r.y + 6, r.width - 16, r.height - 12));
+            devScroll = GUILayout.BeginScrollView(devScroll);
+            GUILayout.Label("<b>DEVELOPER OVERLAY</b>   (P = presentation mode)", sLabel);
+            string mode = !R.Tags.GetBool("X_EStop_NC") ? "E-STOP (simulated)" : !plc.Running ? "STOPPED" : plc.AutoActive ? "AUTO DEMO" : "VISITOR (auto resumes in " + plc.IdleRemaining.ToString("F0") + " s)";
+            GUILayout.Label("Machine: " + mode, sLabel);
+            GUILayout.Label("Sequence: gantry " + plc.GantryText + (plc.FaultText.Length > 0 ? "  FAULT: " + plc.FaultText : ""), sLabel);
+            GUILayout.Label("Visitor queue " + plc.VisitorQ.Count + "/" + plc.VisitorQueueMax + "   circulating (PLC) " + plc.ActiveCount + " / (sim) " + Sim.ActiveBalls + "   target " + plc.AutoTarget, sLabel);
+            var sb = new StringBuilder("Pumps: ");
+            for (int k = 0; k < 6; k++) { var p = Sim.Pumps[k]; sb.Append(Colors.Names[k + 1][0]).Append(p.St == 0 ? (p.Cup != null ? " idle" : " ---") : p.St == 1 ? " UP" : " DN").Append(" (").Append(p.Strokes).Append(")  "); }
+            GUILayout.Label(sb.ToString(), sLabel);
+            GUILayout.Label("Gantry X " + Sim.GX.ToString("F0") + " mm  Z " + Sim.GZ.ToString("F0") + "  grip " + Sim.Grip.ToString("F2") + "   nest color read: " + (Sim.NestValid ? Colors.Names[Sim.NestColor] : "-"), sLabel);
+            GUILayout.Label("Sorted " + plc.SortedCount + "   misplaced " + plc.MisplacedCount + "   rejected " + plc.RejectedCount + "   visitor served " + plc.VisitorServed + "   presses refused " + plc.VisitorRejectedPresses, sLabel);
+            GUILayout.Label("Inventory (true ball color):", sLabel);
+            GUILayout.Label("color    total  home  misfiled  pump  circ  reject  hopper", sSmall);
+            for (int c = 1; c <= 6; c++)
+                GUILayout.Label(string.Format("{0,-7} {1,5} {2,5} {3,7} {4,6} {5,5} {6,6} {7,7}", Colors.Names[c], st.Total[c], st.InOwnHopper[c], st.Misfiled[c], st.InPump[c], st.Circulating[c], st.InReject[c], st.HopperCount[c]), sSmall);
+            int expect = 6 * L.InventoryPerColor;
+            var o = GUI.contentColor; GUI.contentColor = (st.Consistent && st.Grand == expect) ? new Color(0.5f, 1f, 0.5f) : new Color(1f, 0.4f, 0.4f);
+            GUILayout.Label("Total " + st.Grand + " / " + expect + (st.Consistent ? "   ledger OK" : "   LEDGER ERROR: " + st.Problem), sLabel);
+            GUI.contentColor = o;
+            GUILayout.Space(6);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Start", sBtn)) Press("X_Start_PB");
+            if (GUILayout.Button("Stop", sBtn)) Press("X_Stop_PB");
+            var bc = GUI.backgroundColor; GUI.backgroundColor = estop ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.25f, 0.2f);
+            if (GUILayout.Button(estop ? "RELEASE E-STOP" : "E-STOP (SIMULATED)", sBtn)) { estop = !estop; R.Tags.SetBool("X_EStop_NC", !estop); }
+            GUI.backgroundColor = bc;
+            if (GUILayout.Button("Restart", sBtn)) Restart();
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Plant wrong ball", sBtn)) demoLine = Sim.PlantWrongBall();
+            if (GUILayout.Button(Sim.ForceUnknownNext ? "Unknown armed" : "Force unknown", sBtn)) Sim.ForceUnknownNext = true;
+            if (GUILayout.Button("Clear rejects", sBtn)) Sim.ClearRejectPocket();
+            GUILayout.EndHorizontal();
+            if (GUILayout.Button("Presentation mode (hide this panel)", sBtn)) presentation = true;
+            GUILayout.Space(4);
+            speed = Slider("Sim speed x", speed, 0.25f, 4f, "F2");
+            plc.IdleSeconds = Slider("Idle before demo s", (float)plc.IdleSeconds, 2, 60, "F0");
+            plc.AutoInterval = Slider("Auto request every s", (float)plc.AutoInterval, 0.5f, 10, "F1");
+            plc.AutoTarget = (int)Slider("Auto: balls circulating", plc.AutoTarget, 1, 6, "F0");
+            ballDiameter = Mathf.Round(Slider("Ball diameter mm (restart)", ballDiameter, 16, 40, "F0"));
+            inventoryPerColor = (int)Slider("Balls per color (restart)", inventoryPerColor, 14, 120, "F0");
+            if (GUILayout.Button("Apply size & Restart", sBtn)) Restart();
+            GUILayout.Label("Layout: " + L.HopperCols + "x" + L.HopperRows + " cell hoppers, footprint " + (L.MaxX - L.MinX).ToString("F0") + " x " + (L.MaxY - L.MinY).ToString("F0") + " mm", sSmall);
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        float Slider(string label, float v, float a, float b, string fmt)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label + " " + v.ToString(fmt), sSmall, GUILayout.Width(190));
+            v = GUILayout.HorizontalSlider(v, a, b);
+            GUILayout.EndHorizontal();
+            return v;
+        }
+    }
+}
