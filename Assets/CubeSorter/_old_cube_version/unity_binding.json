@@ -1,0 +1,535 @@
+{
+ "meta": {
+  "source_blend": "C:\\Users\\ComputerComa\\Documents\\cube_sorter_bundle\\cube_sorter_concept.blend",
+  "blender_units": "1 Blender unit = 1 m (scene displays mm)",
+  "realvirtual_units": "1 Unity unit = 1 mm; drive positions in mm and degrees",
+  "axis_mapping_expected_for_glTF": "Unity (x,y,z) = Blender (x, z, y). Verify with ANCHOR_* positions.",
+  "scale_note": "Exports are in metres. realvirtual wants 1 unit = 1 mm: set import scale 1000 (check ANCHOR_Drop_* spacing = 90).",
+  "colors_order": [
+   "Red",
+   "Orange",
+   "Yellow",
+   "Green",
+   "Blue",
+   "Purple"
+  ],
+  "cube_mm": 25.4,
+  "lane_pitch_mm": 90.0,
+  "gantry_travel_mm": 540.0
+ },
+ "objects": [
+  {
+   "object": "ANCHOR_Pickup",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, 0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, 0]",
+   "note": "Cube centre at pickup stop"
+  },
+  {
+   "object": "ANCHOR_Source_Bowl",
+   "role": "Anchor",
+   "pos_blender_mm": "[-500.0, 84, 137]",
+   "pos_unity_expected_mm": "[-500.0, 137, 84]",
+   "note": "Centre of the vibratory bowl floor; spawn point for new cubes"
+  },
+  {
+   "object": "ANCHOR_Gantry_Home",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, 0, 212.0]",
+   "pos_unity_expected_mm": "[0, 212.0, 0]",
+   "note": "Gripper TCP axis, Z up, over pickup"
+  },
+  {
+   "object": "ANCHOR_Lift_Discharge",
+   "role": "Anchor",
+   "pos_blender_mm": "[-548, 62, 190]",
+   "pos_unity_expected_mm": "[-548, 190, 62]",
+   "note": "Where the lift head chute drops cubes into the bowl (recirculation)"
+  },
+  {
+   "object": "ANCHOR_Bowl_Landing",
+   "role": "Anchor",
+   "pos_blender_mm": "[-335.0, 0, 122.7]",
+   "pos_unity_expected_mm": "[-335.0, 122.7, 0]",
+   "note": "Where a cube lands on the feed belt from the bowl exit chute"
+  },
+  {
+   "object": "ANCHOR_Drop_Red",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, -270.0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, -270.0]",
+   "note": "Cube centre at Red drop position"
+  },
+  {
+   "object": "ANCHOR_Drop_Orange",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, -180.0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, -180.0]",
+   "note": "Cube centre at Orange drop position"
+  },
+  {
+   "object": "ANCHOR_Drop_Yellow",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, -90.0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, -90.0]",
+   "note": "Cube centre at Yellow drop position"
+  },
+  {
+   "object": "ANCHOR_Drop_Green",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, 90.0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, 90.0]",
+   "note": "Cube centre at Green drop position"
+  },
+  {
+   "object": "ANCHOR_Drop_Blue",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, 180.0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, 180.0]",
+   "note": "Cube centre at Blue drop position"
+  },
+  {
+   "object": "ANCHOR_Drop_Purple",
+   "role": "Anchor",
+   "pos_blender_mm": "[0, 270.0, 122.7]",
+   "pos_unity_expected_mm": "[0, 122.7, 270.0]",
+   "note": "Cube centre at Purple drop position"
+  },
+  {
+   "object": "SENSOR_Pickup_Presence",
+   "role": "Sensor",
+   "tag": "X_Pickup_Presence",
+   "pos_blender_mm": "[0.0, 0.0, 122.7]",
+   "pos_unity_expected_mm": "[0.0, 122.7, 0.0]",
+   "note": "Cube held against hard stop"
+  },
+  {
+   "object": "SENSOR_ColorStation",
+   "role": "Sensor",
+   "tag": "X_ColorStation_Present",
+   "pos_blender_mm": "[2.0, 0.0, 125.2]",
+   "pos_unity_expected_mm": "[2.0, 125.2, 0.0]",
+   "note": "Cube held at the end stop in view of the color camera (camera is in the stop, facing back along the belt); read the color tag here"
+  },
+  {
+   "object": "SENSOR_BowlTrack_Entry",
+   "role": "Sensor",
+   "tag": "X_BowlTrack_Entry",
+   "pos_blender_mm": "[-497.5, 0.0, 136.0]",
+   "pos_unity_expected_mm": "[-497.5, 136.0, 0.0]",
+   "note": "A cube has just been taken onto the bowl spiral track"
+  },
+  {
+   "object": "SENSOR_ChuteBackup",
+   "role": "Sensor",
+   "tag": "X_ChuteBackup",
+   "pos_blender_mm": "[-378.0, 0.0, 141.0]",
+   "pos_unity_expected_mm": "[-378.0, 141.0, 0.0]",
+   "note": "Photo-eye at the middle of the bowl exit chute: a cube sitting here means the feed belt is backed up past half way up the chute"
+  },
+  {
+   "object": "SENSOR_ExitReturn",
+   "role": "Sensor",
+   "tag": "X_ExitReturn",
+   "pos_blender_mm": "[-466.0, 23.0, 182.0]",
+   "pos_unity_expected_mm": "[-466.0, 182.0, 23.0]",
+   "note": "Cube diverted off the exit back into the bowl"
+  },
+  {
+   "object": "SENSOR_LaneEnd_Red",
+   "role": "Sensor",
+   "tag": "X_LaneEnd_Red",
+   "pos_blender_mm": "[446.5, -270.0, 122.7]",
+   "pos_unity_expected_mm": "[446.5, 122.7, -270.0]",
+   "note": "Lane full / cube at end of Red lane"
+  },
+  {
+   "object": "SENSOR_LaneEnd_Orange",
+   "role": "Sensor",
+   "tag": "X_LaneEnd_Orange",
+   "pos_blender_mm": "[446.5, -180.0, 122.7]",
+   "pos_unity_expected_mm": "[446.5, 122.7, -180.0]",
+   "note": "Lane full / cube at end of Orange lane"
+  },
+  {
+   "object": "SENSOR_LaneEnd_Yellow",
+   "role": "Sensor",
+   "tag": "X_LaneEnd_Yellow",
+   "pos_blender_mm": "[446.5, -90.0, 122.7]",
+   "pos_unity_expected_mm": "[446.5, 122.7, -90.0]",
+   "note": "Lane full / cube at end of Yellow lane"
+  },
+  {
+   "object": "SENSOR_LaneEnd_Green",
+   "role": "Sensor",
+   "tag": "X_LaneEnd_Green",
+   "pos_blender_mm": "[446.5, 90.0, 122.7]",
+   "pos_unity_expected_mm": "[446.5, 122.7, 90.0]",
+   "note": "Lane full / cube at end of Green lane"
+  },
+  {
+   "object": "SENSOR_LaneEnd_Blue",
+   "role": "Sensor",
+   "tag": "X_LaneEnd_Blue",
+   "pos_blender_mm": "[446.5, 180.0, 122.7]",
+   "pos_unity_expected_mm": "[446.5, 122.7, 180.0]",
+   "note": "Lane full / cube at end of Blue lane"
+  },
+  {
+   "object": "SENSOR_LaneEnd_Purple",
+   "role": "Sensor",
+   "tag": "X_LaneEnd_Purple",
+   "pos_blender_mm": "[446.5, 270.0, 122.7]",
+   "pos_unity_expected_mm": "[446.5, 122.7, 270.0]",
+   "note": "Lane full / cube at end of Purple lane"
+  },
+  {
+   "object": "SENSOR_LiftPocket",
+   "role": "Sensor",
+   "tag": "X_LiftPocket_Presence",
+   "pos_blender_mm": "[-700.0, 0.0, 26.0]",
+   "pos_unity_expected_mm": "[-700.0, 26.0, 0.0]",
+   "note": "Cube waiting in lift pocket"
+  },
+  {
+   "object": "TRIG_Gripper_CubeInside",
+   "role": "Sensor",
+   "tag": "X_Gripper_HasCube",
+   "note": "Child of Gripper; fires when a cube is between the fingers (use with realvirtual Grip)"
+  },
+  {
+   "object": "PREFAB_Cube_Red",
+   "role": "MU_Prefab",
+   "size_mm": "25.4",
+   "color": "Red",
+   "note": "Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner."
+  },
+  {
+   "object": "PREFAB_Cube_Orange",
+   "role": "MU_Prefab",
+   "size_mm": "25.4",
+   "color": "Orange",
+   "note": "Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner."
+  },
+  {
+   "object": "PREFAB_Cube_Yellow",
+   "role": "MU_Prefab",
+   "size_mm": "25.4",
+   "color": "Yellow",
+   "note": "Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner."
+  },
+  {
+   "object": "PREFAB_Cube_Green",
+   "role": "MU_Prefab",
+   "size_mm": "25.4",
+   "color": "Green",
+   "note": "Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner."
+  },
+  {
+   "object": "PREFAB_Cube_Blue",
+   "role": "MU_Prefab",
+   "size_mm": "25.4",
+   "color": "Blue",
+   "note": "Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner."
+  },
+  {
+   "object": "PREFAB_Cube_Purple",
+   "role": "MU_Prefab",
+   "size_mm": "25.4",
+   "color": "Purple",
+   "note": "Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner."
+  },
+  {
+   "object": "Gantry_H_Carriage",
+   "role": "Drive",
+   "axis_blender": "+Y",
+   "axis_unity_expected": "Z",
+   "lower_mm": "-270.0",
+   "upper_mm": "270.0",
+   "rest_mm": "0",
+   "speed_mm_s": "300",
+   "accel_mm_s2": "1500",
+   "tag_target": "DF_Gantry_Y_Target_mm",
+   "tag_feedback": "DF_Gantry_Y_mm",
+   "note": "Parent of Z carriage; moves whole gripper chain"
+  },
+  {
+   "object": "Gantry_Z_Carriage",
+   "role": "Drive",
+   "axis_blender": "+Z",
+   "axis_unity_expected": "Y",
+   "lower_mm": "-100.0",
+   "upper_mm": "0",
+   "rest_mm": "0",
+   "speed_mm_s": "250",
+   "accel_mm_s2": "1500",
+   "tag_target": "DF_Gantry_Z_Target_mm",
+   "tag_feedback": "DF_Gantry_Z_mm",
+   "note": "Rest = UP. Negative travel = down. Parent of Gripper"
+  },
+  {
+   "object": "Gripper",
+   "role": "Group",
+   "note": "Parent of both fingers; no motion of its own"
+  },
+  {
+   "object": "Gripper_Finger_Pos",
+   "role": "Drive",
+   "axis_blender": "+Y",
+   "axis_unity_expected": "Z",
+   "lower_mm": "0",
+   "upper_mm": "7.3",
+   "rest_mm": "0",
+   "speed_mm_s": "60",
+   "accel_mm_s2": "600",
+   "tag_cmd": "Y_Gripper_Close",
+   "note": "Master finger. 0 = closed on cube, upper = fully open (opens toward +Y)"
+  },
+  {
+   "object": "Gripper_Finger_Neg",
+   "role": "Drive",
+   "axis_blender": "-Y",
+   "axis_unity_expected": "Z",
+   "lower_mm": "0",
+   "upper_mm": "7.3",
+   "rest_mm": "0",
+   "speed_mm_s": "60",
+   "note": "Slave of Gripper_Finger_Pos, gear ratio -1 (opens toward -Y)"
+  },
+  {
+   "object": "Bowl_Base",
+   "role": "Static",
+   "tag_cmd": "Y_Feeder_Run",
+   "note": "Vibration drive. Optional: small oscillation while Y_Feeder_Run"
+  },
+  {
+   "object": "Bowl_Exit_Diverter_Actuator",
+   "role": "Static",
+   "note": "Rotary actuator body + post for the exit diverter"
+  },
+  {
+   "object": "Bowl_Exit_Diverter",
+   "role": "Drive",
+   "axis_blender": "rotation about vertical (Z) at the hinge (object origin)",
+   "lower_deg": "0",
+   "upper_deg": "40",
+   "rest_deg": "0",
+   "speed_deg_s": "200",
+   "tag_cmd": "Y_Exit_Divert",
+   "note": "Hinged guide arm. Retracted lies along the -Y wall of the exit; extended (+40 deg toward +Y) it gently diverts arriving cubes off the +Y side back into the bowl"
+  },
+  {
+   "object": "Bowl_Floor",
+   "role": "StaticCollider",
+   "note": "Mesh/box collider"
+  },
+  {
+   "object": "Bowl_Wall",
+   "role": "StaticCollider",
+   "note": "Mesh collider (non-convex, static)"
+  },
+  {
+   "object": "Bowl_Wall_Low",
+   "role": "StaticCollider",
+   "note": "Low wall section under the exit track"
+  },
+  {
+   "object": "Bowl_Track",
+   "role": "StaticCollider",
+   "note": "Spiral ledge. Cubes follow it kinematically: ~1 turn, CCW seen from above, rising 40 mm"
+  },
+  {
+   "object": "Bowl_Exit_Track",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "80",
+   "note": "Single-file exit, level"
+  },
+  {
+   "object": "Bowl_Exit_Chute",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "100",
+   "note": "Lands cubes on Feed_Belt"
+  },
+  {
+   "object": "Feed_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "80",
+   "tag_cmd": "Y_Feed_Run"
+  },
+  {
+   "object": "Lane_Red_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "75.0",
+   "tag_cmd": "Y_LaneRed_Run"
+  },
+  {
+   "object": "Ramp_Red",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "150",
+   "note": "Stand-in for gravity slide; constant speed or use physics"
+  },
+  {
+   "object": "Lane_Orange_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "75.0",
+   "tag_cmd": "Y_LaneOrange_Run"
+  },
+  {
+   "object": "Ramp_Orange",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "150",
+   "note": "Stand-in for gravity slide; constant speed or use physics"
+  },
+  {
+   "object": "Lane_Yellow_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "75.0",
+   "tag_cmd": "Y_LaneYellow_Run"
+  },
+  {
+   "object": "Ramp_Yellow",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "150",
+   "note": "Stand-in for gravity slide; constant speed or use physics"
+  },
+  {
+   "object": "Lane_Green_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "75.0",
+   "tag_cmd": "Y_LaneGreen_Run"
+  },
+  {
+   "object": "Ramp_Green",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "150",
+   "note": "Stand-in for gravity slide; constant speed or use physics"
+  },
+  {
+   "object": "Lane_Blue_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "75.0",
+   "tag_cmd": "Y_LaneBlue_Run"
+  },
+  {
+   "object": "Ramp_Blue",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "150",
+   "note": "Stand-in for gravity slide; constant speed or use physics"
+  },
+  {
+   "object": "Lane_Purple_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "+X",
+   "speed_mm_s": "75.0",
+   "tag_cmd": "Y_LanePurple_Run"
+  },
+  {
+   "object": "Ramp_Purple",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward +X",
+   "speed_mm_s": "150",
+   "note": "Stand-in for gravity slide; constant speed or use physics"
+  },
+  {
+   "object": "Return_Belt",
+   "role": "TransportSurface",
+   "dir_blender": "-X",
+   "speed_mm_s": "100",
+   "tag_cmd": "Y_Return_Run",
+   "note": "Centre-line return belt, under deck"
+  },
+  {
+   "object": "Return_Slide",
+   "role": "Static",
+   "note": "Short slide from the end of the return belt down into the collection chute (lift pocket)"
+  },
+  {
+   "object": "Collector_Belt_Pos",
+   "role": "TransportSurface",
+   "dir_blender": "-Y (toward centre)",
+   "speed_mm_s": "100",
+   "tag_cmd": "Y_Collector_Run"
+  },
+  {
+   "object": "Collector_Belt_Neg",
+   "role": "TransportSurface",
+   "dir_blender": "+Y (toward centre)",
+   "speed_mm_s": "100",
+   "tag_cmd": "Y_Collector_Run"
+  },
+  {
+   "object": "Lift_Incline_Concept",
+   "role": "TransportSurface",
+   "dir_blender": "up the incline, toward +Y",
+   "speed_mm_s": "120",
+   "tag_cmd": "Y_Lift_Run",
+   "note": "55 deg inclined conveyor along +Y, loaded from the collection chute at the -Y end"
+  },
+  {
+   "object": "Lift_Head_Chute",
+   "role": "TransportSurface",
+   "dir_blender": "along slope, down toward the bowl centre",
+   "speed_mm_s": "150",
+   "note": "Head chute into the bowl"
+  },
+  {
+   "object": "Pickup_Stop",
+   "role": "StaticCollider",
+   "note": "Hard stop, keep collider"
+  },
+  {
+   "object": "Ctl_EStop",
+   "role": "OperatorInput",
+   "tag": "X_EStop_NC",
+   "note": "Normally-closed contact"
+  },
+  {
+   "object": "Ctl_Start",
+   "role": "OperatorInput",
+   "tag": "X_Start_PB"
+  },
+  {
+   "object": "Ctl_Stop",
+   "role": "OperatorInput",
+   "tag": "X_Stop_PB"
+  },
+  {
+   "object": "Ctl_ModeSelector",
+   "role": "OperatorInput",
+   "tag": "X_Mode_Auto"
+  },
+  {
+   "object": "Ctl_Pilot_Run",
+   "role": "OperatorOutput",
+   "tag": "Y_Pilot_Run"
+  },
+  {
+   "object": "Ctl_Pilot_Ready",
+   "role": "OperatorOutput",
+   "tag": "Y_Pilot_Ready"
+  },
+  {
+   "object": "Ctl_Pilot_Fault",
+   "role": "OperatorOutput",
+   "tag": "Y_Pilot_Fault"
+  },
+  {
+   "object": "HMI_Screen",
+   "role": "HMI",
+   "note": "Optional: render-texture or UI panel"
+  }
+ ]
+}

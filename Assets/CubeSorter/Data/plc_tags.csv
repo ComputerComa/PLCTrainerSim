@@ -1,0 +1,107 @@
+tag,type,direction,description
+X_Start_PB,BOOL,Sim->PLC,Start pushbutton (momentary)
+X_Stop_PB,BOOL,Sim->PLC,Stop pushbutton (momentary)
+X_EStop_NC,BOOL,Sim->PLC,"Emergency stop, normally closed (FALSE = tripped). SIMULATED control only"
+X_Mode_Auto,BOOL,Sim->PLC,Auto mode selected
+X_Pend_1,BOOL,Sim->PLC,Visitor pendant button: request one Red ball
+X_Pend_2,BOOL,Sim->PLC,Visitor pendant button: request one Green ball
+X_Pend_3,BOOL,Sim->PLC,Visitor pendant button: request one Blue ball
+X_Pend_4,BOOL,Sim->PLC,Visitor pendant button: request one Yellow ball
+X_Pend_5,BOOL,Sim->PLC,Visitor pendant button: request one White ball
+X_Pend_6,BOOL,Sim->PLC,Visitor pendant button: request one Black ball
+X_Pump1_CupBall,BOOL,Sim->PLC,Red pump: ball waiting on the piston head (inlet sensor)
+X_Pump1_Ready,BOOL,Sim->PLC,"Red pump: piston home, pawls engaged, can start a stroke"
+X_Pump1_Busy,BOOL,Sim->PLC,Red pump: stroke in progress
+X_Pump1_Done,BOOL,Sim->PLC,Red pump: stroke complete (held until Cycle is dropped)
+X_Pump1_Released,BOOL,Sim->PLC,"Red pump: one-scan pulse, a ball just left the top outlet onto the track"
+X_Pump1_Fault,BOOL,Sim->PLC,Red pump: fault
+X_Track1_AtGate,BOOL,Sim->PLC,Red track: ball waiting at the gate
+X_Track1_Full,BOOL,Sim->PLC,Red track: no room for another ball
+X_Gate1_Pass,BOOL,Sim->PLC,"Red gate: one-scan pulse, a ball passed into the funnel"
+X_Pump2_CupBall,BOOL,Sim->PLC,Green pump: ball waiting on the piston head (inlet sensor)
+X_Pump2_Ready,BOOL,Sim->PLC,"Green pump: piston home, pawls engaged, can start a stroke"
+X_Pump2_Busy,BOOL,Sim->PLC,Green pump: stroke in progress
+X_Pump2_Done,BOOL,Sim->PLC,Green pump: stroke complete (held until Cycle is dropped)
+X_Pump2_Released,BOOL,Sim->PLC,"Green pump: one-scan pulse, a ball just left the top outlet onto the track"
+X_Pump2_Fault,BOOL,Sim->PLC,Green pump: fault
+X_Track2_AtGate,BOOL,Sim->PLC,Green track: ball waiting at the gate
+X_Track2_Full,BOOL,Sim->PLC,Green track: no room for another ball
+X_Gate2_Pass,BOOL,Sim->PLC,"Green gate: one-scan pulse, a ball passed into the funnel"
+X_Pump3_CupBall,BOOL,Sim->PLC,Blue pump: ball waiting on the piston head (inlet sensor)
+X_Pump3_Ready,BOOL,Sim->PLC,"Blue pump: piston home, pawls engaged, can start a stroke"
+X_Pump3_Busy,BOOL,Sim->PLC,Blue pump: stroke in progress
+X_Pump3_Done,BOOL,Sim->PLC,Blue pump: stroke complete (held until Cycle is dropped)
+X_Pump3_Released,BOOL,Sim->PLC,"Blue pump: one-scan pulse, a ball just left the top outlet onto the track"
+X_Pump3_Fault,BOOL,Sim->PLC,Blue pump: fault
+X_Track3_AtGate,BOOL,Sim->PLC,Blue track: ball waiting at the gate
+X_Track3_Full,BOOL,Sim->PLC,Blue track: no room for another ball
+X_Gate3_Pass,BOOL,Sim->PLC,"Blue gate: one-scan pulse, a ball passed into the funnel"
+X_Pump4_CupBall,BOOL,Sim->PLC,Yellow pump: ball waiting on the piston head (inlet sensor)
+X_Pump4_Ready,BOOL,Sim->PLC,"Yellow pump: piston home, pawls engaged, can start a stroke"
+X_Pump4_Busy,BOOL,Sim->PLC,Yellow pump: stroke in progress
+X_Pump4_Done,BOOL,Sim->PLC,Yellow pump: stroke complete (held until Cycle is dropped)
+X_Pump4_Released,BOOL,Sim->PLC,"Yellow pump: one-scan pulse, a ball just left the top outlet onto the track"
+X_Pump4_Fault,BOOL,Sim->PLC,Yellow pump: fault
+X_Track4_AtGate,BOOL,Sim->PLC,Yellow track: ball waiting at the gate
+X_Track4_Full,BOOL,Sim->PLC,Yellow track: no room for another ball
+X_Gate4_Pass,BOOL,Sim->PLC,"Yellow gate: one-scan pulse, a ball passed into the funnel"
+X_Pump5_CupBall,BOOL,Sim->PLC,White pump: ball waiting on the piston head (inlet sensor)
+X_Pump5_Ready,BOOL,Sim->PLC,"White pump: piston home, pawls engaged, can start a stroke"
+X_Pump5_Busy,BOOL,Sim->PLC,White pump: stroke in progress
+X_Pump5_Done,BOOL,Sim->PLC,White pump: stroke complete (held until Cycle is dropped)
+X_Pump5_Released,BOOL,Sim->PLC,"White pump: one-scan pulse, a ball just left the top outlet onto the track"
+X_Pump5_Fault,BOOL,Sim->PLC,White pump: fault
+X_Track5_AtGate,BOOL,Sim->PLC,White track: ball waiting at the gate
+X_Track5_Full,BOOL,Sim->PLC,White track: no room for another ball
+X_Gate5_Pass,BOOL,Sim->PLC,"White gate: one-scan pulse, a ball passed into the funnel"
+X_Pump6_CupBall,BOOL,Sim->PLC,Black pump: ball waiting on the piston head (inlet sensor)
+X_Pump6_Ready,BOOL,Sim->PLC,"Black pump: piston home, pawls engaged, can start a stroke"
+X_Pump6_Busy,BOOL,Sim->PLC,Black pump: stroke in progress
+X_Pump6_Done,BOOL,Sim->PLC,Black pump: stroke complete (held until Cycle is dropped)
+X_Pump6_Released,BOOL,Sim->PLC,"Black pump: one-scan pulse, a ball just left the top outlet onto the track"
+X_Pump6_Fault,BOOL,Sim->PLC,Black pump: fault
+X_Track6_AtGate,BOOL,Sim->PLC,Black track: ball waiting at the gate
+X_Track6_Full,BOOL,Sim->PLC,Black track: no room for another ball
+X_Gate6_Pass,BOOL,Sim->PLC,"Black gate: one-scan pulse, a ball passed into the funnel"
+X_Funnel_Clear,BOOL,Sim->PLC,Merge funnel has room for the next ball
+X_Chute_Full,BOOL,Sim->PLC,Chute before the escapement is full (stop admitting)
+X_Escapement_Ball,BOOL,Sim->PLC,A ball is waiting at the escapement
+X_Nest_BallPresent,BOOL,Sim->PLC,Photo-eye: a ball is in the inspection nest (presence only; black is not empty)
+X_Color_Valid,BOOL,Sim->PLC,Color sensor has a stable reading
+X_Gantry_Busy,BOOL,Sim->PLC,Gantry move in progress
+X_Gantry_Done,BOOL,Sim->PLC,Gantry move complete
+X_Gantry_AtNest,BOOL,Sim->PLC,Gantry is over the nest
+X_Gripper_HasBall,BOOL,Sim->PLC,Gripper closed on a ball
+X_Reject_Ball,BOOL,Sim->PLC,Ball in the check pocket
+X_Reject_Full,BOOL,Sim->PLC,Check pocket full
+DS_Color_Detected,INT,Sim->PLC,"Detected color: 0 unknown, 1 Red, 2 Green, 3 Blue, 4 Yellow, 5 White, 6 Black (what the sensor sees, NOT the requested color)"
+DF_Gantry_X_mm,REAL,Sim->PLC,Gantry X position (mm)
+DF_Gantry_Z_mm,REAL,Sim->PLC,"Gantry Z position (mm, 0 = raised)"
+Y_Motion_Enable,BOOL,PLC->Sim,Motion enable (run and E-stop healthy)
+Y_Pilot_Run,BOOL,PLC->Sim,Run pilot light
+Y_Pilot_Ready,BOOL,PLC->Sim,Ready pilot light
+Y_Pilot_Fault,BOOL,PLC->Sim,Fault pilot light
+Y_Escapement_Open,BOOL,PLC->Sim,Escapement: release one ball into the nest
+Y_Color_Light,BOOL,PLC->Sim,Color sensor illumination on
+Y_Gripper_Close,BOOL,PLC->Sim,Gripper close (concave jaws)
+Y_Gantry_Go,BOOL,PLC->Sim,Gantry: start move (one-scan pulse)
+DS_Gantry_CmdPos,INT,PLC->Sim,"Gantry target: 0 nest, 1..6 Red..Black hopper, 7 check pocket"
+DS_Gantry_Action,INT,PLC->Sim,"Gantry action: 0 move (raise first), 1 lower, 2 raise"
+Y_Pump1_Cycle,BOOL,PLC->Sim,"Red pump: run one stroke (hold until Done, then drop)"
+DS_Pump1_ReqId,INT,PLC->Sim,Red pump: request id (display/trace only)
+Y_Gate1_Open,BOOL,PLC->Sim,Red gate: open (admit one ball)
+Y_Pump2_Cycle,BOOL,PLC->Sim,"Green pump: run one stroke (hold until Done, then drop)"
+DS_Pump2_ReqId,INT,PLC->Sim,Green pump: request id (display/trace only)
+Y_Gate2_Open,BOOL,PLC->Sim,Green gate: open (admit one ball)
+Y_Pump3_Cycle,BOOL,PLC->Sim,"Blue pump: run one stroke (hold until Done, then drop)"
+DS_Pump3_ReqId,INT,PLC->Sim,Blue pump: request id (display/trace only)
+Y_Gate3_Open,BOOL,PLC->Sim,Blue gate: open (admit one ball)
+Y_Pump4_Cycle,BOOL,PLC->Sim,"Yellow pump: run one stroke (hold until Done, then drop)"
+DS_Pump4_ReqId,INT,PLC->Sim,Yellow pump: request id (display/trace only)
+Y_Gate4_Open,BOOL,PLC->Sim,Yellow gate: open (admit one ball)
+Y_Pump5_Cycle,BOOL,PLC->Sim,"White pump: run one stroke (hold until Done, then drop)"
+DS_Pump5_ReqId,INT,PLC->Sim,White pump: request id (display/trace only)
+Y_Gate5_Open,BOOL,PLC->Sim,White gate: open (admit one ball)
+Y_Pump6_Cycle,BOOL,PLC->Sim,"Black pump: run one stroke (hold until Done, then drop)"
+DS_Pump6_ReqId,INT,PLC->Sim,Black pump: request id (display/trace only)
+Y_Gate6_Open,BOOL,PLC->Sim,Black gate: open (admit one ball)

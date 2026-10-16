@@ -1,0 +1,73 @@
+object,role,pos_blender_mm,pos_unity_expected_mm,note,tag,size_mm,color,axis_blender,axis_unity_expected,lower_mm,upper_mm,rest_mm,speed_mm_s,accel_mm_s2,tag_target,tag_feedback,tag_cmd,lower_deg,upper_deg,rest_deg,speed_deg_s,dir_blender
+ANCHOR_Pickup,Anchor,"[0, 0, 122.7]","[0, 122.7, 0]",Cube centre at pickup stop,,,,,,,,,,,,,,,,,,
+ANCHOR_Source_Bowl,Anchor,"[-500.0, 84, 137]","[-500.0, 137, 84]",Centre of the vibratory bowl floor; spawn point for new cubes,,,,,,,,,,,,,,,,,,
+ANCHOR_Gantry_Home,Anchor,"[0, 0, 212.0]","[0, 212.0, 0]","Gripper TCP axis, Z up, over pickup",,,,,,,,,,,,,,,,,,
+ANCHOR_Lift_Discharge,Anchor,"[-548, 62, 190]","[-548, 190, 62]",Where the lift head chute drops cubes into the bowl (recirculation),,,,,,,,,,,,,,,,,,
+ANCHOR_Bowl_Landing,Anchor,"[-335.0, 0, 122.7]","[-335.0, 122.7, 0]",Where a cube lands on the feed belt from the bowl exit chute,,,,,,,,,,,,,,,,,,
+ANCHOR_Drop_Red,Anchor,"[0, -270.0, 122.7]","[0, 122.7, -270.0]",Cube centre at Red drop position,,,,,,,,,,,,,,,,,,
+ANCHOR_Drop_Orange,Anchor,"[0, -180.0, 122.7]","[0, 122.7, -180.0]",Cube centre at Orange drop position,,,,,,,,,,,,,,,,,,
+ANCHOR_Drop_Yellow,Anchor,"[0, -90.0, 122.7]","[0, 122.7, -90.0]",Cube centre at Yellow drop position,,,,,,,,,,,,,,,,,,
+ANCHOR_Drop_Green,Anchor,"[0, 90.0, 122.7]","[0, 122.7, 90.0]",Cube centre at Green drop position,,,,,,,,,,,,,,,,,,
+ANCHOR_Drop_Blue,Anchor,"[0, 180.0, 122.7]","[0, 122.7, 180.0]",Cube centre at Blue drop position,,,,,,,,,,,,,,,,,,
+ANCHOR_Drop_Purple,Anchor,"[0, 270.0, 122.7]","[0, 122.7, 270.0]",Cube centre at Purple drop position,,,,,,,,,,,,,,,,,,
+SENSOR_Pickup_Presence,Sensor,"[0.0, 0.0, 122.7]","[0.0, 122.7, 0.0]",Cube held against hard stop,X_Pickup_Presence,,,,,,,,,,,,,,,,,
+SENSOR_ColorStation,Sensor,"[2.0, 0.0, 125.2]","[2.0, 125.2, 0.0]","Cube held at the end stop in view of the color camera (camera is in the stop, facing back along the belt); read the color tag here",X_ColorStation_Present,,,,,,,,,,,,,,,,,
+SENSOR_BowlTrack_Entry,Sensor,"[-497.5, 0.0, 136.0]","[-497.5, 136.0, 0.0]",A cube has just been taken onto the bowl spiral track,X_BowlTrack_Entry,,,,,,,,,,,,,,,,,
+SENSOR_ChuteBackup,Sensor,"[-378.0, 0.0, 141.0]","[-378.0, 141.0, 0.0]",Photo-eye at the middle of the bowl exit chute: a cube sitting here means the feed belt is backed up past half way up the chute,X_ChuteBackup,,,,,,,,,,,,,,,,,
+SENSOR_ExitReturn,Sensor,"[-466.0, 23.0, 182.0]","[-466.0, 182.0, 23.0]",Cube diverted off the exit back into the bowl,X_ExitReturn,,,,,,,,,,,,,,,,,
+SENSOR_LaneEnd_Red,Sensor,"[446.5, -270.0, 122.7]","[446.5, 122.7, -270.0]",Lane full / cube at end of Red lane,X_LaneEnd_Red,,,,,,,,,,,,,,,,,
+SENSOR_LaneEnd_Orange,Sensor,"[446.5, -180.0, 122.7]","[446.5, 122.7, -180.0]",Lane full / cube at end of Orange lane,X_LaneEnd_Orange,,,,,,,,,,,,,,,,,
+SENSOR_LaneEnd_Yellow,Sensor,"[446.5, -90.0, 122.7]","[446.5, 122.7, -90.0]",Lane full / cube at end of Yellow lane,X_LaneEnd_Yellow,,,,,,,,,,,,,,,,,
+SENSOR_LaneEnd_Green,Sensor,"[446.5, 90.0, 122.7]","[446.5, 122.7, 90.0]",Lane full / cube at end of Green lane,X_LaneEnd_Green,,,,,,,,,,,,,,,,,
+SENSOR_LaneEnd_Blue,Sensor,"[446.5, 180.0, 122.7]","[446.5, 122.7, 180.0]",Lane full / cube at end of Blue lane,X_LaneEnd_Blue,,,,,,,,,,,,,,,,,
+SENSOR_LaneEnd_Purple,Sensor,"[446.5, 270.0, 122.7]","[446.5, 122.7, 270.0]",Lane full / cube at end of Purple lane,X_LaneEnd_Purple,,,,,,,,,,,,,,,,,
+SENSOR_LiftPocket,Sensor,"[-700.0, 0.0, 26.0]","[-700.0, 26.0, 0.0]",Cube waiting in lift pocket,X_LiftPocket_Presence,,,,,,,,,,,,,,,,,
+TRIG_Gripper_CubeInside,Sensor,,,Child of Gripper; fires when a cube is between the fingers (use with realvirtual Grip),X_Gripper_HasCube,,,,,,,,,,,,,,,,,
+PREFAB_Cube_Red,MU_Prefab,,,Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner.,,25.4,Red,,,,,,,,,,,,,,,
+PREFAB_Cube_Orange,MU_Prefab,,,Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner.,,25.4,Orange,,,,,,,,,,,,,,,
+PREFAB_Cube_Yellow,MU_Prefab,,,Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner.,,25.4,Yellow,,,,,,,,,,,,,,,
+PREFAB_Cube_Green,MU_Prefab,,,Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner.,,25.4,Green,,,,,,,,,,,,,,,
+PREFAB_Cube_Blue,MU_Prefab,,,Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner.,,25.4,Blue,,,,,,,,,,,,,,,
+PREFAB_Cube_Purple,MU_Prefab,,,Make a Unity prefab: BoxCollider + Rigidbody + realvirtual MU. Used by Source / spawner.,,25.4,Purple,,,,,,,,,,,,,,,
+Gantry_H_Carriage,Drive,,,Parent of Z carriage; moves whole gripper chain,,,,+Y,Z,-270.0,270.0,0,300,1500,DF_Gantry_Y_Target_mm,DF_Gantry_Y_mm,,,,,,
+Gantry_Z_Carriage,Drive,,,Rest = UP. Negative travel = down. Parent of Gripper,,,,+Z,Y,-100.0,0,0,250,1500,DF_Gantry_Z_Target_mm,DF_Gantry_Z_mm,,,,,,
+Gripper,Group,,,Parent of both fingers; no motion of its own,,,,,,,,,,,,,,,,,,
+Gripper_Finger_Pos,Drive,,,"Master finger. 0 = closed on cube, upper = fully open (opens toward +Y)",,,,+Y,Z,0,7.3,0,60,600,,,Y_Gripper_Close,,,,,
+Gripper_Finger_Neg,Drive,,,"Slave of Gripper_Finger_Pos, gear ratio -1 (opens toward -Y)",,,,-Y,Z,0,7.3,0,60,,,,,,,,,
+Bowl_Base,Static,,,Vibration drive. Optional: small oscillation while Y_Feeder_Run,,,,,,,,,,,,,Y_Feeder_Run,,,,,
+Bowl_Exit_Diverter_Actuator,Static,,,Rotary actuator body + post for the exit diverter,,,,,,,,,,,,,,,,,,
+Bowl_Exit_Diverter,Drive,,,Hinged guide arm. Retracted lies along the -Y wall of the exit; extended (+40 deg toward +Y) it gently diverts arriving cubes off the +Y side back into the bowl,,,,rotation about vertical (Z) at the hinge (object origin),,,,,,,,,Y_Exit_Divert,0,40,0,200,
+Bowl_Floor,StaticCollider,,,Mesh/box collider,,,,,,,,,,,,,,,,,,
+Bowl_Wall,StaticCollider,,,"Mesh collider (non-convex, static)",,,,,,,,,,,,,,,,,,
+Bowl_Wall_Low,StaticCollider,,,Low wall section under the exit track,,,,,,,,,,,,,,,,,,
+Bowl_Track,StaticCollider,,,"Spiral ledge. Cubes follow it kinematically: ~1 turn, CCW seen from above, rising 40 mm",,,,,,,,,,,,,,,,,,
+Bowl_Exit_Track,TransportSurface,,,"Single-file exit, level",,,,,,,,,80,,,,,,,,,+X
+Bowl_Exit_Chute,TransportSurface,,,Lands cubes on Feed_Belt,,,,,,,,,100,,,,,,,,,"along slope, down toward +X"
+Feed_Belt,TransportSurface,,,,,,,,,,,,80,,,,Y_Feed_Run,,,,,+X
+Lane_Red_Belt,TransportSurface,,,,,,,,,,,,75.0,,,,Y_LaneRed_Run,,,,,+X
+Ramp_Red,TransportSurface,,,Stand-in for gravity slide; constant speed or use physics,,,,,,,,,150,,,,,,,,,"along slope, down toward +X"
+Lane_Orange_Belt,TransportSurface,,,,,,,,,,,,75.0,,,,Y_LaneOrange_Run,,,,,+X
+Ramp_Orange,TransportSurface,,,Stand-in for gravity slide; constant speed or use physics,,,,,,,,,150,,,,,,,,,"along slope, down toward +X"
+Lane_Yellow_Belt,TransportSurface,,,,,,,,,,,,75.0,,,,Y_LaneYellow_Run,,,,,+X
+Ramp_Yellow,TransportSurface,,,Stand-in for gravity slide; constant speed or use physics,,,,,,,,,150,,,,,,,,,"along slope, down toward +X"
+Lane_Green_Belt,TransportSurface,,,,,,,,,,,,75.0,,,,Y_LaneGreen_Run,,,,,+X
+Ramp_Green,TransportSurface,,,Stand-in for gravity slide; constant speed or use physics,,,,,,,,,150,,,,,,,,,"along slope, down toward +X"
+Lane_Blue_Belt,TransportSurface,,,,,,,,,,,,75.0,,,,Y_LaneBlue_Run,,,,,+X
+Ramp_Blue,TransportSurface,,,Stand-in for gravity slide; constant speed or use physics,,,,,,,,,150,,,,,,,,,"along slope, down toward +X"
+Lane_Purple_Belt,TransportSurface,,,,,,,,,,,,75.0,,,,Y_LanePurple_Run,,,,,+X
+Ramp_Purple,TransportSurface,,,Stand-in for gravity slide; constant speed or use physics,,,,,,,,,150,,,,,,,,,"along slope, down toward +X"
+Return_Belt,TransportSurface,,,"Centre-line return belt, under deck",,,,,,,,,100,,,,Y_Return_Run,,,,,-X
+Return_Slide,Static,,,Short slide from the end of the return belt down into the collection chute (lift pocket),,,,,,,,,,,,,,,,,,
+Collector_Belt_Pos,TransportSurface,,,,,,,,,,,,100,,,,Y_Collector_Run,,,,,-Y (toward centre)
+Collector_Belt_Neg,TransportSurface,,,,,,,,,,,,100,,,,Y_Collector_Run,,,,,+Y (toward centre)
+Lift_Incline_Concept,TransportSurface,,,"55 deg inclined conveyor along +Y, loaded from the collection chute at the -Y end",,,,,,,,,120,,,,Y_Lift_Run,,,,,"up the incline, toward +Y"
+Lift_Head_Chute,TransportSurface,,,Head chute into the bowl,,,,,,,,,150,,,,,,,,,"along slope, down toward the bowl centre"
+Pickup_Stop,StaticCollider,,,"Hard stop, keep collider",,,,,,,,,,,,,,,,,,
+Ctl_EStop,OperatorInput,,,Normally-closed contact,X_EStop_NC,,,,,,,,,,,,,,,,,
+Ctl_Start,OperatorInput,,,,X_Start_PB,,,,,,,,,,,,,,,,,
+Ctl_Stop,OperatorInput,,,,X_Stop_PB,,,,,,,,,,,,,,,,,
+Ctl_ModeSelector,OperatorInput,,,,X_Mode_Auto,,,,,,,,,,,,,,,,,
+Ctl_Pilot_Run,OperatorOutput,,,,Y_Pilot_Run,,,,,,,,,,,,,,,,,
+Ctl_Pilot_Ready,OperatorOutput,,,,Y_Pilot_Ready,,,,,,,,,,,,,,,,,
+Ctl_Pilot_Fault,OperatorOutput,,,,Y_Pilot_Fault,,,,,,,,,,,,,,,,,
+HMI_Screen,HMI,,,Optional: render-texture or UI panel,,,,,,,,,,,,,,,,,,
